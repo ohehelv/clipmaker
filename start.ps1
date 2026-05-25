@@ -11,7 +11,8 @@
 #>
 param(
     [int]$Port = 8000,
-    [switch]$NoBrowser
+  [switch]$NoBrowser,
+  [switch]$Edge
 )
 
 $ErrorActionPreference = "Stop"
@@ -29,17 +30,42 @@ if ($LASTEXITCODE -ne 0) {
   exit 1
 }
 
-& docker compose up -d
+if ($Edge) {
+  & docker compose -f docker-compose.yml -f docker-compose.edge.yml up -d
+}
+else {
+  & docker compose up -d
+}
 if ($LASTEXITCODE -ne 0) {
   Write-Host "Не удалось поднять контейнеры" -ForegroundColor Red
   exit 1
 }
 
 if (-not $NoBrowser) {
+  $targetUrl = "http://127.0.0.1:$Port"
+  if ($Edge) {
+    $envFile = Join-Path $PSScriptRoot ".env"
+    if (Test-Path $envFile) {
+      $domainLine = Get-Content $envFile | Where-Object { $_ -match '^APP_DOMAIN=' } | Select-Object -First 1
+      if ($domainLine) {
+        $domain = ($domainLine -replace '^APP_DOMAIN=', '').Trim()
+        if ($domain) {
+          $targetUrl = "https://$domain"
+        }
+      }
+    }
+  }
+
     Start-Job -ScriptBlock {
-        param($p)
+    param($url)
         Start-Sleep -Seconds 4
-        Start-Process "http://127.0.0.1:$p"
-    } -ArgumentList $Port | Out-Null
+    Start-Process $url
+  } -ArgumentList $targetUrl | Out-Null
 }
-Write-Host "ClipMaker запущен. Откройте http://127.0.0.1:$Port" -ForegroundColor Green
+
+if ($Edge) {
+  Write-Host "ClipMaker запущен в edge-режиме (Caddy + HTTPS)." -ForegroundColor Green
+}
+else {
+  Write-Host "ClipMaker запущен. Откройте http://127.0.0.1:$Port" -ForegroundColor Green
+}

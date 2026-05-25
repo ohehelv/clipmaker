@@ -1,0 +1,35 @@
+{
+    email {$ACME_EMAIL}
+}
+
+{$APP_DOMAIN} {
+    encode zstd gzip
+
+    @api path /api/*
+    basicauth @api {
+        {$CADDY_BASIC_AUTH_USER} {$CADDY_BASIC_AUTH_HASH}
+    }
+
+    # Ограничиваем размер входящего тела запроса.
+    request_body {
+        max_size 150MB
+    }
+
+    header {
+        -Server
+        X-Frame-Options "DENY"
+        X-Content-Type-Options "nosniff"
+        Referrer-Policy "no-referrer"
+        Permissions-Policy "camera=(), microphone=(), geolocation=()"
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; media-src 'self' blob:; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+    }
+
+    reverse_proxy clipmaker:8000 {
+        transport http {
+            dial_timeout 10s
+            read_timeout 300s
+            write_timeout 300s
+        }
+    }
+}

@@ -1,0 +1,20 @@
+services:
+  caddy:
+    image: caddy:2.9
+    container_name: clipmaker-caddy
+    restart: unless-stopped
+    depends_on:
+      - clipmaker
+    env_file:
+      - .env
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./infra/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  caddy_data:
+  caddy_config:

@@ -11,7 +11,7 @@ services:
       COMFYUI_URL: ${COMFYUI_URL:-http://host.docker.internal:8188}
       DATA_DIR: /app/data
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     volumes:
       - ./data:/app/data
     extra_hosts:

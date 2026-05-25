@@ -35,6 +35,19 @@ cd e:\clipmaker
 
 Открыть http://127.0.0.1:8000
 
+## Публичный HTTPS режим (Caddy)
+
+1. Заполните в `.env`: `APP_DOMAIN`, `ACME_EMAIL`, `CADDY_BASIC_AUTH_HASH`.
+2. Обновите `CORS_ORIGINS` под ваш https-домен.
+3. Запустите:
+
+```powershell
+.\start.ps1 -Edge
+```
+
+После этого внешний вход идёт через Caddy на `https://<ваш-домен>`,
+а backend остаётся привязан к localhost (`127.0.0.1:8000`).
+
 ## Основные переменные окружения
 
 - `COMFYUI_URL` — адрес ComfyUI (по умолчанию для Docker: `http://host.docker.internal:8188`).
@@ -50,6 +63,7 @@ cd e:\clipmaker
 - [docs/OPERATIONS.md](docs/OPERATIONS.md)
 - [docs/SECURITY.md](docs/SECURITY.md)
 - [docs/RELEASE.md](docs/RELEASE.md)
+- [docs/DEPLOY_PUBLIC.md](docs/DEPLOY_PUBLIC.md)
 
 ## Структура
 
