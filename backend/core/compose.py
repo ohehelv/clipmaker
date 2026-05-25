@@ -12,12 +12,18 @@ from ..schemas import Scene
 
 
 async def probe_duration(path: Path) -> float:
-    proc = await asyncio.create_subprocess_exec(
-        settings.ffprobe_bin,
-        "-v", "error", "-show_entries", "format=duration",
-        "-of", "default=noprint_wrappers=1:nokey=1", str(path),
-        stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-    )
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            settings.ffprobe_bin,
+            "-v", "error", "-show_entries", "format=duration",
+            "-of", "default=noprint_wrappers=1:nokey=1", str(path),
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+        )
+    except FileNotFoundError as e:
+        raise RuntimeError(
+            f"ffprobe не найден: {settings.ffprobe_bin}. "
+            "Для Docker укажите FFPROBE_BIN=ffprobe."
+        ) from e
     out, err = await proc.communicate()
     if proc.returncode != 0:
         raise RuntimeError(f"ffprobe failed: {err.decode(errors='ignore')}")
@@ -25,9 +31,16 @@ async def probe_duration(path: Path) -> float:
 
 
 async def _run(*args: str) -> None:
-    proc = await asyncio.create_subprocess_exec(
-        *args, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-    )
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            *args, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        )
+    except FileNotFoundError as e:
+        bin_name = args[0] if args else settings.ffmpeg_bin
+        raise RuntimeError(
+            f"ffmpeg бинарь не найден: {bin_name}. "
+            "Для Docker укажите FFMPEG_BIN=ffmpeg и FFPROBE_BIN=ffprobe."
+        ) from e
     _out, err = await proc.communicate()
     if proc.returncode != 0:
         raise RuntimeError(f"ffmpeg failed: {' '.join(args[:3])}: {err.decode(errors='ignore')[-500:]}")
