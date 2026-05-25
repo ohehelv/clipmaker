@@ -39,28 +39,68 @@ def _tokens(text: str) -> list[str]:
 
 
 _whisper_model = None
+_whisper_backend: tuple[str, str] | None = None
+
+
+def _is_cuda_runtime_error(exc: BaseException) -> bool:
+    msg = str(exc).lower()
+    return (
+        "cuda failed" in msg
+        or "cuda driver version is insufficient" in msg
+        or "cudart" in msg
+    )
+
+
+def _build_whisper(device: str, compute_type: str):
+    from faster_whisper import WhisperModel  # отложенный импорт (тяжёлый)
+    return WhisperModel(
+        settings.whisper_model,
+        device=device,
+        compute_type=compute_type,
+    )
 
 
 def _get_whisper():
-    global _whisper_model
+    global _whisper_model, _whisper_backend
     if _whisper_model is None:
-        from faster_whisper import WhisperModel  # отложенный импорт (тяжёлый)
-        _whisper_model = WhisperModel(
-            settings.whisper_model,
-            device=settings.whisper_device,
-            compute_type=settings.whisper_compute_type,
-        )
+        try:
+            _whisper_model = _build_whisper(settings.whisper_device, settings.whisper_compute_type)
+            _whisper_backend = (settings.whisper_device, settings.whisper_compute_type)
+        except RuntimeError as e:
+            # На серверах/контейнерах без совместимого CUDA не валим задачу, а уходим на CPU.
+            if settings.whisper_device.startswith("cuda") and _is_cuda_runtime_error(e):
+                print("[alignment] CUDA недоступна для Whisper, fallback на CPU int8")
+                _whisper_model = _build_whisper("cpu", "int8")
+                _whisper_backend = ("cpu", "int8")
+            else:
+                raise
     return _whisper_model
 
 
 def transcribe_words(audio_path: Path, language: Optional[str] = None) -> List[WordTs]:
+    global _whisper_model, _whisper_backend
     model = _get_whisper()
-    segments, _info = model.transcribe(
-        str(audio_path),
-        language=language,
-        word_timestamps=True,
-        vad_filter=True,
-    )
+    try:
+        segments, _info = model.transcribe(
+            str(audio_path),
+            language=language,
+            word_timestamps=True,
+            vad_filter=True,
+        )
+    except RuntimeError as e:
+        # Если CUDA отвалилась уже во время transcribe — пересоздаём модель на CPU и ретраим один раз.
+        if _whisper_backend and _whisper_backend[0].startswith("cuda") and _is_cuda_runtime_error(e):
+            print("[alignment] CUDA ошибка во время transcribe, переключение Whisper на CPU int8")
+            _whisper_model = _build_whisper("cpu", "int8")
+            _whisper_backend = ("cpu", "int8")
+            segments, _info = _whisper_model.transcribe(
+                str(audio_path),
+                language=language,
+                word_timestamps=True,
+                vad_filter=True,
+            )
+        else:
+            raise
     words: List[WordTs] = []
     for seg in segments:
         if not seg.words:
