@@ -1,0 +1,18 @@
+services:
+  clipmaker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: clipmaker
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      COMFYUI_URL: ${COMFYUI_URL:-http://host.docker.internal:8188}
+      DATA_DIR: /app/data
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

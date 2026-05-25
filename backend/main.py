@@ -3,7 +3,8 @@ from __future__ import annotations
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
@@ -11,6 +12,7 @@ from .config import settings
 from .api import jobs as jobs_api
 from .api import models as models_api
 from .api import prompts as prompts_api
+from .api.security import require_api_key
 from .jobs.queue import job_queue
 from .services import comfyui_lifecycle
 
@@ -28,9 +30,17 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(title="ClipMaker", version="0.2.0", lifespan=lifespan)
 
-app.include_router(jobs_api.router, prefix="/api/jobs", tags=["jobs"])
-app.include_router(models_api.router, prefix="/api/models", tags=["models"])
-app.include_router(prompts_api.router, prefix="/api/prompts", tags=["prompts"])
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.cors_origins_list or ["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.include_router(jobs_api.router, prefix="/api/jobs", tags=["jobs"], dependencies=[Depends(require_api_key)])
+app.include_router(models_api.router, prefix="/api/models", tags=["models"], dependencies=[Depends(require_api_key)])
+app.include_router(prompts_api.router, prefix="/api/prompts", tags=["prompts"], dependencies=[Depends(require_api_key)])
 
 # отдача готовых файлов
 app.mount("/files", StaticFiles(directory=str(settings.data_dir)), name="files")

@@ -5,7 +5,7 @@
 
 ; Перед сборкой замените URL на ваш репозиторий.
 #ifndef RepoUrl
-  #define RepoUrl "https://github.com/REPLACE_ME/clipmaker.git"
+  #define RepoUrl "https://github.com/ohehelv/clipmaker.git"
 #endif
 
 #ifndef RepoRef

@@ -19,31 +19,37 @@
 ## Стек
 
 - Python 3.11+, FastAPI, Uvicorn.
+- Docker Desktop + Docker Compose (основной способ запуска).
 - `faster-whisper` для транскрипции/таймкодов.
 - `httpx` для OpenRouter и ComfyUI HTTP API.
-- `ffmpeg` (внешний бинарник в PATH).
-- ComfyUI запущен отдельно (по умолчанию `http://127.0.0.1:8188`).
+- `ffmpeg` внутри контейнера.
+- ComfyUI запускается отдельно (обычно на хосте, URL через `COMFYUI_URL`).
 
-## Установка
+## Быстрый старт (Windows + Docker)
 
 ```powershell
 cd e:\clipmaker
-python -m venv .venv
-.\.venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-copy .env.example .env
-# Прописать OPENROUTER_API_KEY и COMFYUI_URL
-```
-
-ffmpeg должен быть в PATH. ComfyUI ставится отдельно (см. https://github.com/comfyanonymous/ComfyUI).
-
-## Запуск
-
-```powershell
-uvicorn backend.main:app --reload --host 127.0.0.1 --port 8000
+.\setup.ps1
+.\start.ps1
 ```
 
 Открыть http://127.0.0.1:8000
+
+## Основные переменные окружения
+
+- `COMFYUI_URL` — адрес ComfyUI (по умолчанию для Docker: `http://host.docker.internal:8188`).
+- `OPENROUTER_API_KEY` — ключ OpenRouter для LLM режима.
+- `API_KEY` — если задан, API требует `X-API-Key` или `Authorization: Bearer ...`.
+- `CORS_ORIGINS` — список origin через запятую.
+
+Шаблон: [.env.example](.env.example)
+
+## Документация
+
+- [docs/INSTALL_WINDOWS.md](docs/INSTALL_WINDOWS.md)
+- [docs/OPERATIONS.md](docs/OPERATIONS.md)
+- [docs/SECURITY.md](docs/SECURITY.md)
+- [docs/RELEASE.md](docs/RELEASE.md)
 
 ## Структура
 
@@ -79,12 +85,6 @@ tempscripts/           разовые скрипты
 
 Скелет. Видеогенераторы — заглушки (кроме `stub`, который рендерит цветные плейсхолдеры). Реальные ComfyUI workflows подключаются по мере необходимости — кладутся в `backend/generators/workflows/` и используются клиентом.
 
-## Дальнейшие шаги
-
-1. Запустить ComfyUI, установить нужные модели/ноды.
-2. Заменить заглушки `workflows/*.json` на реальные экспорты из ComfyUI (Save (API Format)).
-3. Откорректировать параметры узлов в соответствующих `generators/<model>.py`.
-
 ## Windows Installer (Inno Setup)
 
 Для локальной установки (для себя/небольшой группы) добавлен инсталлятор в папке `installer/`.
@@ -103,7 +103,7 @@ tempscripts/           разовые скрипты
 
 ```powershell
 cd e:\clipmaker\installer
-.\build-installer.ps1 -RepoUrl https://github.com/<owner>/<repo>.git -RepoRef main
+.\build-installer.ps1 -RepoUrl https://github.com/ohehelv/clipmaker.git -RepoRef main
 ```
 
 Готовый файл будет в `installer\\output\\KaraokeMakerSetup.exe`.

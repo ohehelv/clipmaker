@@ -31,6 +31,10 @@ class Settings(BaseSettings):
     ffmpeg_bin: str = "ffmpeg"
     ffprobe_bin: str = "ffprobe"
 
+    # API безопасность
+    api_key: str = ""
+    cors_origins: str = "http://127.0.0.1:8000,http://localhost:8000"
+
     # Видео по умолчанию (Wan 2.2 native — 832x480 @16fps быстро и стабильно)
     default_generator: str = "wan"
     default_width: int = 832
@@ -57,6 +61,10 @@ class Settings(BaseSettings):
     def ensure_dirs(self) -> None:
         for p in (self.uploads_dir, self.jobs_dir, self.outputs_dir):
             p.mkdir(parents=True, exist_ok=True)
+
+    @property
+    def cors_origins_list(self) -> list[str]:
+        return [x.strip() for x in self.cors_origins.split(",") if x.strip()]
 
 
 settings = Settings()

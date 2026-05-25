@@ -1,7 +1,7 @@
 ﻿#requires -Version 5.1
 <#
 .SYNOPSIS
-  Запуск ClipMaker (FastAPI). ComfyUI поднимется автоматически из бэкенда.
+  Запуск ClipMaker через Docker Compose.
 
 .PARAMETER Port
   Порт FastAPI. По умолчанию 8000.
@@ -17,10 +17,22 @@ param(
 $ErrorActionPreference = "Stop"
 Set-Location -Path $PSScriptRoot
 
-$venvPy = Join-Path $PSScriptRoot ".venv\Scripts\python.exe"
-if (-not (Test-Path $venvPy)) {
-    Write-Host "venv не найден. Сначала: .\setup.ps1" -ForegroundColor Red
+& docker compose version *> $null
+if ($LASTEXITCODE -ne 0) {
+  Write-Host "docker compose недоступен. Сначала: .\setup.ps1" -ForegroundColor Red
     exit 1
+}
+
+& docker info *> $null
+if ($LASTEXITCODE -ne 0) {
+  Write-Host "Docker daemon не запущен" -ForegroundColor Red
+  exit 1
+}
+
+& docker compose up -d
+if ($LASTEXITCODE -ne 0) {
+  Write-Host "Не удалось поднять контейнеры" -ForegroundColor Red
+  exit 1
 }
 
 if (-not $NoBrowser) {
@@ -30,5 +42,4 @@ if (-not $NoBrowser) {
         Start-Process "http://127.0.0.1:$p"
     } -ArgumentList $Port | Out-Null
 }
-
-& $venvPy -m uvicorn backend.main:app --host 127.0.0.1 --port $Port
+Write-Host "ClipMaker запущен. Откройте http://127.0.0.1:$Port" -ForegroundColor Green
