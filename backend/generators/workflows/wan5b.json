@@ -1,0 +1,89 @@
+{
+  "MODEL": {
+    "class_type": "UNETLoader",
+    "inputs": {
+      "unet_name": "wan2.2_ti2v_5B_fp16.safetensors",
+      "weight_dtype": "default"
+    }
+  },
+  "MODELSAMPLING": {
+    "class_type": "ModelSamplingSD3",
+    "inputs": {
+      "shift": 5.0,
+      "model": ["MODEL", 0]
+    }
+  },
+  "CLIP": {
+    "class_type": "CLIPLoader",
+    "inputs": {
+      "clip_name": "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+      "type": "wan"
+    }
+  },
+  "VAE": {
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "wan2.2_vae.safetensors"
+    }
+  },
+  "POSITIVE": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "cinematic music video shot",
+      "clip": ["CLIP", 0]
+    }
+  },
+  "NEGATIVE": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "low quality, blurry, watermark, text, bad anatomy",
+      "clip": ["CLIP", 0]
+    }
+  },
+  "LATENT": {
+    "class_type": "EmptyHunyuanLatentVideo",
+    "inputs": {
+      "width": 1280,
+      "height": 704,
+      "length": 49,
+      "batch_size": 1
+    }
+  },
+  "SAMPLER": {
+    "class_type": "KSampler",
+    "inputs": {
+      "seed": 0,
+      "steps": 20,
+      "cfg": 5.0,
+      "sampler_name": "uni_pc",
+      "scheduler": "simple",
+      "denoise": 1.0,
+      "model": ["MODELSAMPLING", 0],
+      "positive": ["POSITIVE", 0],
+      "negative": ["NEGATIVE", 0],
+      "latent_image": ["LATENT", 0]
+    }
+  },
+  "VAE_DECODE": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": ["SAMPLER", 0],
+      "vae": ["VAE", 0]
+    }
+  },
+  "VIDEO_OUT": {
+    "class_type": "VHS_VideoCombine",
+    "inputs": {
+      "images": ["VAE_DECODE", 0],
+      "frame_rate": 24,
+      "loop_count": 0,
+      "filename_prefix": "clipmaker/wan5b",
+      "format": "video/h264-mp4",
+      "pix_fmt": "yuv420p",
+      "crf": 19,
+      "save_metadata": false,
+      "pingpong": false,
+      "save_output": true
+    }
+  }
+}

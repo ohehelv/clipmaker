@@ -34,6 +34,7 @@ def _bootstrap() -> None:
     from .cogvideox import CogVideoXGenerator
     from .hunyuan import HunyuanGenerator
     from .wan import WanGenerator
+    from .wan5b import Wan5BGenerator
     from .mochi import MochiGenerator
     from .ltx import LTXGenerator
 
@@ -44,6 +45,7 @@ def _bootstrap() -> None:
         CogVideoXGenerator(),
         HunyuanGenerator(),
         WanGenerator(),
+        Wan5BGenerator(),
         MochiGenerator(),
         LTXGenerator(),
     ]:
