@@ -6,6 +6,9 @@ const drop = document.getElementById('drop');
 const audio = document.getElementById('audio');
 const dropSub = document.getElementById('drop-sub');
 const goBtn = document.getElementById('go');
+const healthBanner = document.getElementById('health-banner');
+
+let canSubmit = false;
 
 async function loadGenerators() {
   try {
@@ -43,6 +46,10 @@ function updateDropLabel() {
 
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
+  if (!canSubmit) {
+    alert('ComfyUI недоступен. Запустите ComfyUI и проверьте COMFYUI_URL.');
+    return;
+  }
   goBtn.disabled = true;
   try {
     const fd = new FormData(form);
@@ -120,6 +127,43 @@ async function refresh() {
   } catch (e) {}
 }
 
+function setHealthState(state, text) {
+  if (!healthBanner) return;
+  healthBanner.classList.remove('health-loading', 'health-ok', 'health-warn', 'health-error');
+  healthBanner.classList.add(state);
+  healthBanner.textContent = text;
+}
+
+async function refreshHealth() {
+  try {
+    const r = await fetch('/api/health');
+    if (!r.ok) {
+      canSubmit = false;
+      goBtn.disabled = true;
+      setHealthState('health-error', 'Health endpoint недоступен: ' + r.status);
+      return;
+    }
+    const h = await r.json();
+    if (h.comfy_alive) {
+      canSubmit = true;
+      goBtn.disabled = false;
+      if (h.openrouter_configured) {
+        setHealthState('health-ok', 'ComfyUI доступен. Сервис готов к генерации.');
+      } else {
+        setHealthState('health-warn', 'ComfyUI доступен. OpenRouter не настроен: LLM-режимы будут ограничены.');
+      }
+    } else {
+      canSubmit = false;
+      goBtn.disabled = true;
+      setHealthState('health-error', `ComfyUI недоступен: ${h.comfyui_url}. Проверьте запуск ComfyUI.`);
+    }
+  } catch (e) {
+    canSubmit = false;
+    goBtn.disabled = true;
+    setHealthState('health-error', 'Нет связи с backend. Проверьте, что ClipMaker запущен.');
+  }
+}
+
 jobsDiv.addEventListener('click', async (e) => {
   const cp = e.target.closest('.copy-err');
   if (cp) {
@@ -158,7 +202,9 @@ if (clearBtn) {
 
 loadGenerators();
 refresh();
+refreshHealth();
 setInterval(refresh, 2000);
+setInterval(refreshHealth, 5000);
 
 // --- редактор системных промтов ---
 const pDir = document.getElementById('p-director');

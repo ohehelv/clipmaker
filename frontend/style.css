@@ -22,6 +22,19 @@ main {
 .hero { padding: 24px; }
 h2 { margin: 0 0 12px; font-size: 16px; }
 
+.health-banner {
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid #2a2f3a;
+  font-size: 13px;
+  line-height: 1.35;
+}
+.health-loading { background: #111827; color: #d1d5db; }
+.health-ok { background: #052e1b; border-color: #14532d; color: #bbf7d0; }
+.health-warn { background: #2a1d04; border-color: #854d0e; color: #fef08a; }
+.health-error { background: #3a0d13; border-color: #7f1d1d; color: #fecaca; }
+
 form .field { display: block; margin: 14px 0; }
 form .field > span {
   display: block; font-size: 12px; color: #9ca3af; margin-bottom: 6px;
