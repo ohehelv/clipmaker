@@ -30,7 +30,7 @@ class WanGenerator(ComfyWorkflowGenerator):
             "POSITIVE": {"text": req.prompt},
             "NEGATIVE": {"text": self.negative_default},
             "LATENT": {"width": req.width, "height": req.height, "length": length, "batch_size": 1},
-            "SAMPLER_HIGH": {"seed": seed},
-            "SAMPLER_LOW": {"seed": seed},
+            "SAMPLER_HIGH": {"noise_seed": seed},
+            "SAMPLER_LOW": {"noise_seed": seed},
             "VIDEO_OUT": {"frame_rate": req.fps},
         }

@@ -87,7 +87,25 @@ async def _wait_history(
         if r.status_code == 200:
             data = r.json()
             if prompt_id in data:
-                return data[prompt_id]
+                entry = data[prompt_id]
+                status = entry.get("status", {}) or {}
+                # ждём, пока ComfyUI пометит запуск как завершённый
+                if status.get("completed") is True or status.get("status_str") in ("success", "error"):
+                    if status.get("status_str") == "error":
+                        msgs = status.get("messages") or []
+                        # вытащим текст ошибки из execution_error
+                        details = []
+                        for m in msgs:
+                            if isinstance(m, list) and len(m) >= 2 and m[0] == "execution_error":
+                                d = m[1] or {}
+                                details.append(
+                                    f"node {d.get('node_id')} ({d.get('node_type')}): {d.get('exception_message')}"
+                                )
+                        raise ComfyError(
+                            "ComfyUI вернул ошибку выполнения: "
+                            + ("; ".join(details) if details else str(msgs)[:500])
+                        )
+                    return entry
         await asyncio.sleep(1.0)
 
 
@@ -147,16 +165,22 @@ async def run_workflow(
     async with httpx.AsyncClient(timeout=60) as client:
         prompt_id = await _post_prompt(client, wf, client_id)
         hist = await _wait_history(client, prompt_id, cancel_check=cancel_check)
-        outputs = hist.get("outputs", {})
+        outputs = hist.get("outputs", {}) or {}
         # ищем первый видео/гиф/webp файл
         candidates = []
         node_ids = [output_key] if output_key else list(outputs.keys())
         for nid in node_ids:
-            node_out = outputs.get(nid, {})
+            node_out = outputs.get(nid, {}) or {}
             for key in ("gifs", "videos", "images"):
                 for item in node_out.get(key, []) or []:
                     candidates.append(item)
         if not candidates:
+            if output_key and output_key not in outputs:
+                raise ComfyError(
+                    f"нода {output_key!r} не дала выход (есть: {list(outputs.keys())}). "
+                    "Возможно, не установлен ComfyUI-VideoHelperSuite (VHS_VideoCombine) "
+                    "или workflow прерван до этой ноды."
+                )
             raise ComfyError(f"в outputs нет файлов: {outputs}")
         # предпочтительно видео
         candidates.sort(key=lambda x: 0 if x.get("filename", "").lower().endswith((".mp4", ".webm", ".mov")) else 1)
