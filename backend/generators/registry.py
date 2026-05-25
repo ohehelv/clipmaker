@@ -1,0 +1,53 @@
+from __future__ import annotations
+
+from typing import Dict, List
+
+from ..schemas import GeneratorInfo
+from .base import VideoGenerator
+
+
+_REGISTRY: Dict[str, VideoGenerator] = {}
+
+
+def register(gen: VideoGenerator) -> None:
+    _REGISTRY[gen.name] = gen
+
+
+def get(name: str) -> VideoGenerator:
+    if name not in _REGISTRY:
+        raise KeyError(f"Generator '{name}' не зарегистрирован. Доступно: {list(_REGISTRY)}")
+    return _REGISTRY[name]
+
+
+def list_generators() -> List[GeneratorInfo]:
+    return [
+        GeneratorInfo(name=g.name, title=g.title, description=g.description, available=True)
+        for g in _REGISTRY.values()
+    ]
+
+
+def _bootstrap() -> None:
+    # отложенные импорты, чтобы избежать циклов
+    from .stub import StubGenerator
+    from .animatediff import AnimateDiffGenerator
+    from .svd import SVDGenerator
+    from .cogvideox import CogVideoXGenerator
+    from .hunyuan import HunyuanGenerator
+    from .wan import WanGenerator
+    from .mochi import MochiGenerator
+    from .ltx import LTXGenerator
+
+    for g in [
+        StubGenerator(),
+        AnimateDiffGenerator(),
+        SVDGenerator(),
+        CogVideoXGenerator(),
+        HunyuanGenerator(),
+        WanGenerator(),
+        MochiGenerator(),
+        LTXGenerator(),
+    ]:
+        register(g)
+
+
+_bootstrap()

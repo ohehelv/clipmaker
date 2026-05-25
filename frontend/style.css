@@ -1,0 +1,113 @@
+* { box-sizing: border-box; }
+body {
+  font-family: -apple-system, Segoe UI, Roboto, sans-serif;
+  margin: 0; background: #0e0f12; color: #e5e7eb;
+}
+header {
+  padding: 16px 24px; border-bottom: 1px solid #1f2937;
+  display: flex; align-items: baseline; gap: 12px;
+}
+header h1 { margin: 0; font-size: 20px; }
+header small { color: #9ca3af; }
+
+main {
+  max-width: 860px; margin: 0 auto; padding: 24px 16px;
+  display: flex; flex-direction: column; gap: 16px;
+}
+
+.card {
+  background: #15171c; border: 1px solid #1f2937;
+  border-radius: 14px; padding: 20px;
+}
+.hero { padding: 24px; }
+h2 { margin: 0 0 12px; font-size: 16px; }
+
+form .field { display: block; margin: 14px 0; }
+form .field > span {
+  display: block; font-size: 12px; color: #9ca3af; margin-bottom: 6px;
+}
+form .field em { color: #6b7280; font-style: normal; }
+
+input[type=text], input[type=number], select, textarea {
+  width: 100%; padding: 10px 12px; background: #0b0c0f; color: #e5e7eb;
+  border: 1px solid #2a2f3a; border-radius: 10px; font-size: 14px;
+}
+textarea { resize: vertical; font-family: ui-monospace, Consolas, monospace; }
+
+.drop {
+  display: block; cursor: pointer;
+  border: 2px dashed #2a2f3a; border-radius: 14px;
+  padding: 28px; text-align: center; transition: border-color .2s, background .2s;
+}
+.drop:hover, .drop.hover { border-color: #2563eb; background: #11151c; }
+.drop input[type=file]{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+.drop-title { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
+.drop-sub { color: #9ca3af; font-size: 13px; }
+
+#go {
+  display: block; width: 100%; margin-top: 16px;
+  background: #2563eb; color: #fff; border: none;
+  padding: 14px 20px; border-radius: 12px;
+  cursor: pointer; font-weight: 700; font-size: 16px;
+  transition: background .15s;
+}
+#go:hover { background: #1d4ed8; }
+#go:disabled { background: #1f2937; cursor: not-allowed; }
+
+.advanced { margin-top: 18px; }
+.advanced summary {
+  cursor: pointer; color: #9ca3af; font-size: 13px; padding: 6px 0;
+  user-select: none;
+}
+.advanced[open] summary { color: #e5e7eb; }
+.row {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 8px;
+}
+.row label {
+  display: block; font-size: 11px; color: #9ca3af;
+}
+.check { display: flex; align-items: center; gap: 6px; padding-top: 14px; }
+.check input { width: auto; }
+
+.job {
+  border: 1px solid #1f2937; border-radius: 10px;
+  padding: 12px; margin-bottom: 10px;
+}
+.job .head { display: flex; justify-content: space-between; align-items: center; }
+.job .id { font-family: ui-monospace, monospace; color: #9ca3af; font-size: 11px; }
+.job .bar {
+  height: 6px; background: #1f2937; border-radius: 3px;
+  overflow: hidden; margin: 8px 0;
+}
+.job .bar > div { height: 100%; background: #2563eb; transition: width .3s; }
+.job .status { font-size: 12px; color: #9ca3af; }
+.job video { width: 100%; margin-top: 8px; border-radius: 8px; }
+.err {
+  color: #fca5a5; white-space: pre-wrap;
+  font-size: 11px; max-height: 140px; overflow: auto;
+}
+.cancel {
+  background: transparent; color: #fca5a5; border: 1px solid #3a1f23;
+  padding: 4px 10px; border-radius: 6px; cursor: pointer; font-size: 11px;
+}
+.cancel:hover { background: #2a1316; }
+
+@media (max-width: 700px) {
+  .row { grid-template-columns: repeat(2, 1fr); }
+}
+
+.jobs-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.ghost{background:transparent;color:#6b7280;border:1px solid #d1d5db;padding:6px 12px;border-radius:6px;cursor:pointer;font-size:13px}
+.ghost:hover{background:#f3f4f6}
+
+.err{position:relative;background:#fef2f2;border:1px solid #fecaca;padding:8px;border-radius:6px;margin-top:8px}
+.err pre{white-space:pre-wrap;word-break:break-word;font-size:12px;margin:0;color:#7f1d1d;max-height:200px;overflow:auto}
+.err .copy-err{position:absolute;top:6px;right:6px;font-size:11px;padding:2px 8px}
+
+#prompts-section summary{cursor:pointer;padding:4px 0;font-size:14px}
+.prompts-body{margin-top:14px;display:flex;flex-direction:column;gap:12px}
+.prompts-body textarea{width:100%;background:#0b0d11;color:#e5e7eb;border:1px solid #2a2f3a;border-radius:8px;padding:10px;font-family:ui-monospace,Consolas,monospace;font-size:12px;line-height:1.45}
+.prompts-body .row{display:flex;align-items:center;gap:10px}
+.prompts-body button{padding:8px 14px;border-radius:8px;border:none;background:#2563eb;color:#fff;cursor:pointer;font-weight:600}
+.prompts-body .ghost{background:transparent;color:#9ca3af;border:1px solid #2a2f3a}
+.p-status{font-size:12px}

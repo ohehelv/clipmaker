@@ -1,0 +1,124 @@
+{
+  "MODEL_HIGH": {
+    "class_type": "UNETLoader",
+    "inputs": {
+      "unet_name": "wan2.2_t2v_high_noise_14B_fp8_scaled.safetensors",
+      "weight_dtype": "fp8_e4m3fn_fast"
+    }
+  },
+  "MODEL_LOW": {
+    "class_type": "UNETLoader",
+    "inputs": {
+      "unet_name": "wan2.2_t2v_low_noise_14B_fp8_scaled.safetensors",
+      "weight_dtype": "fp8_e4m3fn_fast"
+    }
+  },
+  "MODELSAMPLING_HIGH": {
+    "class_type": "ModelSamplingSD3",
+    "inputs": {
+      "shift": 5.0,
+      "model": ["MODEL_HIGH", 0]
+    }
+  },
+  "MODELSAMPLING_LOW": {
+    "class_type": "ModelSamplingSD3",
+    "inputs": {
+      "shift": 5.0,
+      "model": ["MODEL_LOW", 0]
+    }
+  },
+  "CLIP": {
+    "class_type": "CLIPLoader",
+    "inputs": {
+      "clip_name": "umt5_xxl_fp8_e4m3fn_scaled.safetensors",
+      "type": "wan"
+    }
+  },
+  "VAE": {
+    "class_type": "VAELoader",
+    "inputs": {
+      "vae_name": "wan_2.1_vae.safetensors"
+    }
+  },
+  "POSITIVE": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "cinematic music video shot",
+      "clip": ["CLIP", 0]
+    }
+  },
+  "NEGATIVE": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "low quality, blurry, watermark, text, bad anatomy",
+      "clip": ["CLIP", 0]
+    }
+  },
+  "LATENT": {
+    "class_type": "EmptyHunyuanLatentVideo",
+    "inputs": {
+      "width": 1280,
+      "height": 704,
+      "length": 49,
+      "batch_size": 1
+    }
+  },
+  "SAMPLER_HIGH": {
+    "class_type": "KSamplerAdvanced",
+    "inputs": {
+      "add_noise": "enable",
+      "noise_seed": 0,
+      "steps": 10,
+      "cfg": 5.0,
+      "sampler_name": "uni_pc",
+      "scheduler": "simple",
+      "start_at_step": 0,
+      "end_at_step": 5,
+      "return_with_leftover_noise": "enable",
+      "model": ["MODELSAMPLING_HIGH", 0],
+      "positive": ["POSITIVE", 0],
+      "negative": ["NEGATIVE", 0],
+      "latent_image": ["LATENT", 0]
+    }
+  },
+  "SAMPLER_LOW": {
+    "class_type": "KSamplerAdvanced",
+    "inputs": {
+      "add_noise": "disable",
+      "noise_seed": 0,
+      "steps": 10,
+      "cfg": 5.0,
+      "sampler_name": "uni_pc",
+      "scheduler": "simple",
+      "start_at_step": 5,
+      "end_at_step": 10000,
+      "return_with_leftover_noise": "disable",
+      "model": ["MODELSAMPLING_LOW", 0],
+      "positive": ["POSITIVE", 0],
+      "negative": ["NEGATIVE", 0],
+      "latent_image": ["SAMPLER_HIGH", 0]
+    }
+  },
+  "VAE_DECODE": {
+    "class_type": "VAEDecode",
+    "inputs": {
+      "samples": ["SAMPLER_LOW", 0],
+      "vae": ["VAE", 0]
+    }
+  },
+  "VIDEO_OUT": {
+    "class_type": "VHS_VideoCombine",
+    "inputs": {
+      "images": ["VAE_DECODE", 0],
+      "frame_rate": 24,
+      "loop_count": 0,
+      "filename_prefix": "clipmaker/wan",
+      "format": "video/h264-mp4",
+      "pix_fmt": "yuv420p",
+      "crf": 19,
+      "save_metadata": false,
+      "pingpong": false,
+      "save_output": true
+    }
+  }
+}

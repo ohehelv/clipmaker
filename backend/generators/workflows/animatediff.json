@@ -1,0 +1,7 @@
+{
+  "_comment": "ЗАГЛУШКА. Замените на реальный экспорт ComfyUI 'Save (API Format)'. Узлы должны иметь ключи: POSITIVE, NEGATIVE, LATENT, SAMPLER.",
+  "POSITIVE": {"class_type": "CLIPTextEncode", "inputs": {"text": "", "clip": ["__CLIP__", 0]}},
+  "NEGATIVE": {"class_type": "CLIPTextEncode", "inputs": {"text": "", "clip": ["__CLIP__", 0]}},
+  "LATENT":   {"class_type": "EmptyLatentImage", "inputs": {"width": 512, "height": 512, "batch_size": 16}},
+  "SAMPLER":  {"class_type": "KSampler", "inputs": {"seed": 0, "steps": 20, "cfg": 7.0, "sampler_name": "euler", "scheduler": "normal", "denoise": 1.0, "model": ["__MODEL__", 0], "positive": ["POSITIVE", 0], "negative": ["NEGATIVE", 0], "latent_image": ["LATENT", 0]}}
+}

@@ -1,0 +1,5 @@
+vendor/ComfyUI/
+vendor/*.7z
+*.safetensors
+*.ckpt
+*.pt

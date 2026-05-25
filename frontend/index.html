@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>ClipMaker</title>
+<link rel="stylesheet" href="/static/style.css">
+<link rel="icon" href="data:,">
+</head>
+<body>
+<header>
+  <h1>ClipMaker</h1>
+  <small>MP3 + текст + идея → готовый клип</small>
+</header>
+
+<main>
+  <section class="hero card">
+    <form id="job-form" method="post" action="/api/jobs" enctype="multipart/form-data">
+      <label class="drop" id="drop">
+        <input type="file" name="audio" id="audio" accept="audio/*" required>
+        <div class="drop-inner">
+          <div class="drop-title">Перетащи MP3 сюда</div>
+          <div class="drop-sub" id="drop-sub">или нажми, чтобы выбрать файл</div>
+        </div>
+      </label>
+
+      <label class="field">
+        <span>Идея клипа</span>
+        <textarea name="prompt" rows="3" required
+          placeholder="кинематографичный неон-нуар, ночной город, медленные камеры"></textarea>
+      </label>
+
+      <label class="field">
+        <span>Текст песни <em>(необязательно)</em></span>
+        <textarea name="lyrics" rows="6"
+          placeholder="каждая строка станет отдельной сценой"></textarea>
+      </label>
+
+      <button type="submit" id="go">Сделать клип</button>
+
+      <details class="advanced">
+        <summary>Дополнительно</summary>
+        <div class="row">
+          <label>Генератор
+            <select name="generator" id="generator"></select>
+          </label>
+          <label>Режим сцен
+            <select name="scene_mode" id="scene_mode">
+              <option value="auto">авто</option>
+              <option value="whisper">whisper (по лирике)</option>
+              <option value="llm">llm-режиссёр</option>
+              <option value="uniform">равные сегменты</option>
+              <option value="single">одна сцена</option>
+            </select>
+          </label>
+          <label>N сцен (0 = авто)
+            <input type="number" name="n_scenes" value="0" min="0" max="200">
+          </label>
+        </div>
+        <div class="row">
+          <label>Width <input type="number" name="width" placeholder="auto"></label>
+          <label>Height <input type="number" name="height" placeholder="auto"></label>
+          <label>FPS <input type="number" name="fps" placeholder="auto"></label>
+          <label>Язык (ru/en/auto) <input type="text" name="language" placeholder="auto"></label>
+        </div>
+        <div class="row">
+          <label class="check"><input type="checkbox" name="burn_subtitles"> Вшить субтитры</label>
+          <label class="check"><input type="checkbox" name="llm_detail" checked> LLM-детализация промтов</label>
+        </div>
+      </details>
+    </form>
+  </section>
+
+  <section class="card">
+    <div class="jobs-head">
+      <h2>Задачи</h2>
+      <button type="button" id="clear-jobs" class="ghost">Очистить историю</button>
+    </div>
+    <div id="jobs"></div>
+  </section>
+
+  <section class="card">
+    <details id="prompts-section">
+      <summary><strong>Системные промты LLM</strong> <small style="color:#9ca3af">(применяются на лету)</small></summary>
+      <div class="prompts-body">
+        <label class="field">
+          <span>DIRECTOR_SYSTEM <small>— режиссёр клипа, режим «llm»</small></span>
+          <textarea id="p-director" rows="14" spellcheck="false"></textarea>
+        </label>
+        <label class="field">
+          <span>DETAIL_SYSTEM <small>— детализатор одной сцены, флаг «LLM-детализация»</small></span>
+          <textarea id="p-detail" rows="10" spellcheck="false"></textarea>
+        </label>
+        <div class="row">
+          <button type="button" id="p-save">Сохранить</button>
+          <button type="button" id="p-reset" class="ghost">Сбросить к дефолту</button>
+          <span id="p-status" class="p-status"></span>
+        </div>
+      </div>
+    </details>
+  </section>
+</main>
+
+<script src="/static/app.js"></script>
+</body>
+</html>
