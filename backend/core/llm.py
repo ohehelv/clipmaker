@@ -33,7 +33,13 @@ async def chat(system: str, user: str, model: Optional[str] = None, temperature:
         "X-Title": "ClipMaker",
     }
     async with httpx.AsyncClient(timeout=120) as cli:
-        r = await cli.post(url, json=payload, headers=headers)
+        try:
+            r = await cli.post(url, json=payload, headers=headers)
+        except httpx.ConnectError as e:
+            raise LLMError(
+                f"Нет соединения с OpenRouter: {settings.openrouter_base_url}. "
+                "Проверьте интернет/прокси и OPENROUTER_BASE_URL."
+            ) from e
         if r.status_code >= 400:
             raise LLMError(f"OpenRouter {r.status_code}: {r.text[:300]}")
         data = r.json()

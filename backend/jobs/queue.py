@@ -151,10 +151,14 @@ class JobQueue:
                     )
                     continue
                 tb = traceback.format_exc()
+                if len(tb) > 2400:
+                    tb_view = tb[:1200] + "\n... <traceback trimmed> ...\n" + tb[-1200:]
+                else:
+                    tb_view = tb
                 self._update(
                     job_id,
                     status=JobStatus.error,
-                    error=f"{e}\n\n{tb[-1500:]}",
+                    error=f"{e}\n\n{tb_view}",
                     message="ошибка",
                 )
             finally:

@@ -49,10 +49,16 @@ def patch_workflow(wf: dict, patches: dict[str, dict[str, Any]]) -> dict:
 
 
 async def _post_prompt(client: httpx.AsyncClient, wf: dict, client_id: str) -> str:
-    r = await client.post(
-        f"{settings.comfyui_url}/prompt",
-        json={"prompt": wf, "client_id": client_id},
-    )
+    try:
+        r = await client.post(
+            f"{settings.comfyui_url}/prompt",
+            json={"prompt": wf, "client_id": client_id},
+        )
+    except httpx.ConnectError as e:
+        raise ComfyError(
+            f"Нет соединения с ComfyUI: {settings.comfyui_url}. "
+            "Проверьте, что ComfyUI запущен и COMFYUI_URL указан верно."
+        ) from e
     if r.status_code >= 400:
         raise ComfyError(f"/prompt {r.status_code}: {r.text[:300]}")
     return r.json()["prompt_id"]
@@ -71,7 +77,13 @@ async def _wait_history(
             raise ComfyCancelled()
         if asyncio.get_event_loop().time() > deadline:
             raise ComfyError("ComfyUI timeout")
-        r = await client.get(f"{settings.comfyui_url}/history/{prompt_id}")
+        try:
+            r = await client.get(f"{settings.comfyui_url}/history/{prompt_id}")
+        except httpx.ConnectError as e:
+            raise ComfyError(
+                f"Потеряно соединение с ComfyUI: {settings.comfyui_url}. "
+                "Проверьте, что ComfyUI не остановился во время генерации."
+            ) from e
         if r.status_code == 200:
             data = r.json()
             if prompt_id in data:
@@ -106,10 +118,15 @@ async def interrupt_all() -> None:
 
 
 async def _download_view(client: httpx.AsyncClient, filename: str, subfolder: str, ftype: str, dst: Path) -> None:
-    r = await client.get(
-        f"{settings.comfyui_url}/view",
-        params={"filename": filename, "subfolder": subfolder, "type": ftype},
-    )
+    try:
+        r = await client.get(
+            f"{settings.comfyui_url}/view",
+            params={"filename": filename, "subfolder": subfolder, "type": ftype},
+        )
+    except httpx.ConnectError as e:
+        raise ComfyError(
+            f"Нет соединения с ComfyUI при скачивании результата: {settings.comfyui_url}"
+        ) from e
     if r.status_code >= 400:
         raise ComfyError(f"/view {r.status_code}: {r.text[:300]}")
     dst.write_bytes(r.content)

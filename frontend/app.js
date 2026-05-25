@@ -85,7 +85,7 @@ function renderJob(j) {
   const video = j.output_url ? `<video controls src="${j.output_url}"></video>` : '';
   const err = j.error
     ? `<div class="err">
-         <button class="copy-err ghost" data-err="${escapeAttr(j.error)}">копировать</button>
+         <button class="copy-err ghost" type="button">копировать</button>
          <pre>${escapeHtml(j.error)}</pre>
        </div>` : '';
   const eta = j.eta_seconds ? ` · осталось ${fmtEta(j.eta_seconds)}` : '';
@@ -123,7 +123,7 @@ async function refresh() {
 jobsDiv.addEventListener('click', async (e) => {
   const cp = e.target.closest('.copy-err');
   if (cp) {
-    const txt = cp.dataset.err || '';
+    const txt = cp.parentElement?.querySelector('pre')?.textContent || '';
     try {
       await navigator.clipboard.writeText(txt);
       const old = cp.textContent;
