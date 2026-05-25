@@ -144,13 +144,19 @@ async function refreshHealth() {
       return;
     }
     const h = await r.json();
+    const whisper = h.whisper_device
+      ? ` Whisper: ${h.whisper_device}/${h.whisper_compute_type}${h.whisper_loaded ? '' : ' (не загружен)'}.`
+      : '';
     if (h.comfy_alive) {
       canSubmit = true;
       goBtn.disabled = false;
-      if (h.openrouter_configured) {
-        setHealthState('health-ok', 'ComfyUI доступен. Сервис готов к генерации.');
+      const cpuFallback = h.whisper_loaded && h.whisper_device === 'cpu';
+      if (cpuFallback) {
+        setHealthState('health-warn', `ComfyUI доступен.${whisper} Whisper работает на CPU (fallback), выравнивание лирики будет медленнее.`);
+      } else if (h.openrouter_configured) {
+        setHealthState('health-ok', `ComfyUI доступен. Сервис готов к генерации.${whisper}`);
       } else {
-        setHealthState('health-warn', 'ComfyUI доступен. OpenRouter не настроен: LLM-режимы будут ограничены.');
+        setHealthState('health-warn', `ComfyUI доступен. OpenRouter не настроен: LLM-режимы будут ограничены.${whisper}`);
       }
     } else {
       canSubmit = false;
