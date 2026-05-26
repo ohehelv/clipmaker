@@ -1,0 +1,45 @@
+# docker-compose для деплоя через Coolify.
+# Coolify сам обеспечивает HTTPS-прокси и подставляет SERVICE_FQDN_* labels.
+# Все переменные ниже задаются через Environment Variables в Coolify UI.
+
+services:
+  clipmaker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    environment:
+      # --- Auth ---
+      SECRET_KEY: ${SECRET_KEY}
+      ADMIN_EMAILS: ${ADMIN_EMAILS:-}
+      # --- База данных (SQLite по умолчанию, или Postgres) ---
+      DATABASE_URL: ${DATABASE_URL:-sqlite+aiosqlite:////app/data/clipmaker.db}
+      # --- WaveSpeed (admin fallback key) ---
+      WAVESPEED_API_KEY: ${WAVESPEED_API_KEY:-}
+      WAVESPEED_BASE_URL: ${WAVESPEED_BASE_URL:-https://api.wavespeed.ai/api/v3}
+      # --- OpenRouter ---
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      OPENROUTER_MODEL: ${OPENROUTER_MODEL:-anthropic/claude-3.5-sonnet}
+      OPENROUTER_BASE_URL: ${OPENROUTER_BASE_URL:-https://openrouter.ai/api/v1}
+      # --- Whisper ---
+      WHISPER_MODEL: ${WHISPER_MODEL:-large-v3}
+      WHISPER_DEVICE: ${WHISPER_DEVICE:-cpu}
+      WHISPER_COMPUTE_TYPE: ${WHISPER_COMPUTE_TYPE:-int8}
+      # --- Настройки приложения ---
+      DATA_DIR: /app/data
+      DEFAULT_GENERATOR: ${DEFAULT_GENERATOR:-ws-wan22-ti2v-5b}
+      DEFAULT_FPS: ${DEFAULT_FPS:-24}
+      COMFYUI_AUTOSTART: "false"
+      # --- Cookie ---
+      SECURE_COOKIE: ${SECURE_COOKIE:-true}
+    volumes:
+      - clipmaker_data:/app/data
+    expose:
+      - "8000"
+    labels:
+      # Coolify автоматически добавит свои traefik-labels; expose порта достаточно.
+      - "coolify.managed=true"
+
+volumes:
+  clipmaker_data:
+    driver: local
