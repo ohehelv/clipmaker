@@ -13,3 +13,4 @@ data/outputs/*
 *.log
 installer/output/
 vendor/ComfyUI/
+data/comfyui.log.err
