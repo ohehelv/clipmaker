@@ -1,3 +1,42 @@
+// --- проверка авторизации при загрузке ---
+(async () => {
+  const r = await fetch('/api/auth/me');
+  if (!r.ok) { window.location.href = '/login'; return; }
+  const me = await r.json();
+
+  // Хедер: email + ссылки
+  const header = document.querySelector('header');
+  if (header) {
+    const div = document.createElement('div');
+    div.className = 'header-user';
+    div.innerHTML =
+      `<span class="user-email">${escHtmlSimple(me.email)}${me.is_admin ? ' <span class="badge-admin">admin</span>' : ''}</span>` +
+      `<a href="/settings" class="ghost-link">⚙ Настройки</a>` +
+      `<button id="logout-btn" class="ghost">Выйти</button>`;
+    header.appendChild(div);
+    document.getElementById('logout-btn').addEventListener('click', async () => {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      window.location.href = '/login';
+    });
+  }
+
+  // Баннер "нет WaveSpeed ключа"
+  const wsRes = await fetch('/api/settings');
+  if (wsRes.ok) {
+    const ws = await wsRes.json();
+    if (!ws.has_wavespeed_key) {
+      const banner = document.createElement('div');
+      banner.className = 'banner-warn';
+      banner.innerHTML = '⚠ WaveSpeed API ключ не установлен. <a href="/settings">Добавить ключ →</a>';
+      document.querySelector('main')?.prepend(banner);
+    }
+  }
+})();
+
+function escHtmlSimple(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
 const form = document.getElementById('job-form');
 const jobsDiv = document.getElementById('jobs');
 const genSel = document.getElementById('generator');
@@ -13,14 +52,16 @@ let canSubmit = false;
 async function loadGenerators() {
   try {
     const r = await fetch('/api/models');
-    const list = await r.json();
+    const data = await r.json();
+    const list = data.generators || data; // совместимость
     genSel.innerHTML = list.map(g => {
-      const sel = g.name === 'wan5b' ? ' selected' : '';
-      const avail = g.available ? '' : ' (нет)';
-      return `<option value="${g.name}"${sel}>${g.title}${avail}</option>`;
+      const id = g.id || g.name;
+      const title = g.title || g.name || id;
+      const avail = g.available === false ? ' (нет)' : '';
+      return `<option value="${id}">${title}${avail}</option>`;
     }).join('');
   } catch (e) {
-    genSel.innerHTML = '<option value="wan5b" selected>Wan 2.2 TI2V-5B</option>';
+    genSel.innerHTML = '<option value="ws-wan22-ti2v-5b">Wan 2.2 TI2V-5B (WaveSpeed)</option>';
   }
 }
 
@@ -46,10 +87,6 @@ function updateDropLabel() {
 
 form.addEventListener('submit', async (e) => {
   e.preventDefault();
-  if (!canSubmit) {
-    alert('ComfyUI недоступен. Запустите ComfyUI и проверьте COMFYUI_URL.');
-    return;
-  }
   goBtn.disabled = true;
   try {
     const fd = new FormData(form);

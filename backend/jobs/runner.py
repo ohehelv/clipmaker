@@ -7,7 +7,7 @@ from __future__ import annotations
 import asyncio
 import time
 from pathlib import Path
-from typing import Callable, List
+from typing import Callable, List, Optional, TYPE_CHECKING
 
 from ..config import settings
 from ..core import compose
@@ -15,6 +15,9 @@ from ..core.scenes import plan_scenes
 from ..generators import registry
 from ..generators.base import GenRequest
 from ..schemas import JobRequest, JobStatus, Scene
+
+if TYPE_CHECKING:
+    from .queue import UserContext
 
 
 Progress = Callable[..., None]
@@ -34,7 +37,12 @@ async def run_pipeline(
     req: JobRequest,
     progress: Progress,
     cancel_check: CancelCheck,
+    user_ctx: "Optional[UserContext]" = None,
 ) -> None:
+    # Ленивый импорт чтобы избежать циклов
+    if user_ctx is None:
+        from .queue import UserContext as _UC
+        user_ctx = _UC()
     job_dir = settings.jobs_dir / job_id
     job_dir.mkdir(parents=True, exist_ok=True)
     scenes_dir = job_dir / "scenes"
@@ -45,7 +53,10 @@ async def run_pipeline(
     _check_cancel(cancel_check)
 
     progress(status=JobStatus.planning, message="планирование сцен", progress=0.08)
-    scenes: List[Scene] = await plan_scenes(req, audio_path, duration)
+    scenes: List[Scene] = await plan_scenes(
+        req, audio_path, duration,
+        openrouter_key=user_ctx.openrouter_key or None,
+    )
     progress(scenes=scenes, progress=0.15)
     _check_cancel(cancel_check)
 
@@ -100,6 +111,8 @@ async def run_pipeline(
             out_path=out,
             work_dir=scenes_dir,
             cancel_check=cancel_check,
+            user_wavespeed_key=user_ctx.wavespeed_key,
+            user_openrouter_key=user_ctx.openrouter_key,
         )
         t_scene_start = time.time()
         hb_task = asyncio.create_task(_heartbeat(i, t_scene_start))

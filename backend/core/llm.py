@@ -14,8 +14,15 @@ class LLMError(RuntimeError):
     pass
 
 
-async def chat(system: str, user: str, model: Optional[str] = None, temperature: float = 0.7) -> str:
-    if not settings.openrouter_api_key:
+async def chat(
+    system: str,
+    user: str,
+    model: Optional[str] = None,
+    temperature: float = 0.7,
+    api_key: Optional[str] = None,
+) -> str:
+    key = (api_key or settings.openrouter_api_key).strip()
+    if not key:
         raise LLMError("OPENROUTER_API_KEY не задан")
     url = settings.openrouter_base_url.rstrip("/") + "/chat/completions"
     payload = {
@@ -27,7 +34,7 @@ async def chat(system: str, user: str, model: Optional[str] = None, temperature:
         "temperature": temperature,
     }
     headers = {
-        "Authorization": f"Bearer {settings.openrouter_api_key}",
+        "Authorization": f"Bearer {key}",
         "Content-Type": "application/json",
         "HTTP-Referer": "http://localhost",
         "X-Title": "ClipMaker",

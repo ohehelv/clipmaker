@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Регистрация — ClipMaker</title>
+<link rel="stylesheet" href="/static/style.css">
+<link rel="icon" href="data:,">
+</head>
+<body class="auth-page">
+<div class="auth-card card">
+  <h1>ClipMaker</h1>
+  <p class="auth-sub">Создать аккаунт</p>
+
+  <div id="error-msg" class="error-msg hidden"></div>
+
+  <form id="reg-form">
+    <label class="field">
+      <span>Email</span>
+      <input type="email" name="email" required autofocus autocomplete="email">
+    </label>
+    <label class="field">
+      <span>Пароль</span>
+      <input type="password" name="password" required minlength="8" autocomplete="new-password">
+    </label>
+    <label class="field">
+      <span>Повторите пароль</span>
+      <input type="password" name="password2" required autocomplete="new-password">
+    </label>
+    <button type="submit" id="submit-btn">Зарегистрироваться</button>
+  </form>
+
+  <p class="auth-footer">Уже есть аккаунт? <a href="/login">Войти</a></p>
+</div>
+
+<script type="module">
+import { getMe } from '/static/auth.js';
+
+(async () => {
+  const me = await getMe();
+  if (me) { window.location.href = '/'; return; }
+})();
+
+const form = document.getElementById('reg-form');
+const errMsg = document.getElementById('error-msg');
+const btn = document.getElementById('submit-btn');
+
+form.addEventListener('submit', async e => {
+  e.preventDefault();
+  errMsg.classList.add('hidden');
+
+  const fd = new FormData(form);
+  const email = fd.get('email');
+  const password = fd.get('password');
+  const password2 = fd.get('password2');
+
+  if (password !== password2) {
+    return showError('Пароли не совпадают');
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Регистрация...';
+
+  try {
+    const r = await fetch('/api/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+    if (r.ok) {
+      window.location.href = '/';
+    } else {
+      const d = await r.json().catch(() => ({}));
+      showError(d.detail || 'Ошибка регистрации');
+    }
+  } catch {
+    showError('Ошибка сети. Попробуйте снова.');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Зарегистрироваться';
+  }
+});
+
+function showError(msg) {
+  errMsg.textContent = msg;
+  errMsg.classList.remove('hidden');
+}
+</script>
+</body>
+</html>

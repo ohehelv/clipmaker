@@ -19,11 +19,15 @@ def get(name: str) -> VideoGenerator:
     return _REGISTRY[name]
 
 
-def list_generators() -> List[GeneratorInfo]:
-    return [
-        GeneratorInfo(name=g.name, title=g.title, description=g.description, available=True)
-        for g in _REGISTRY.values()
-    ]
+def list_generators(include_local: bool = False) -> List[GeneratorInfo]:
+    out: list[GeneratorInfo] = []
+    for g in _REGISTRY.values():
+        if getattr(g, "local", False) and not include_local:
+            continue
+        out.append(
+            GeneratorInfo(name=g.name, title=g.title, description=g.description, available=True)
+        )
+    return out
 
 
 def _bootstrap() -> None:
@@ -37,6 +41,8 @@ def _bootstrap() -> None:
     from .wan5b import Wan5BGenerator
     from .mochi import MochiGenerator
     from .ltx import LTXGenerator
+    from .wavespeed_gen import WaveSpeedGenerator
+    from ..services.wavespeed_models import CATALOG as WS_CATALOG
 
     for g in [
         StubGenerator(),
@@ -50,6 +56,9 @@ def _bootstrap() -> None:
         LTXGenerator(),
     ]:
         register(g)
+
+    for meta in WS_CATALOG:
+        register(WaveSpeedGenerator(meta))
 
 
 _bootstrap()

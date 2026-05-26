@@ -16,12 +16,17 @@ class GenRequest:
     out_path: Path           # путь, куда генератор должен записать mp4
     work_dir: Path           # рабочая директория сцены
     cancel_check: Optional[Callable[[], bool]] = None
+    # Пользовательские API-ключи (прокидывает runner; не сохраняются).
+    user_wavespeed_key: str = ""
+    user_openrouter_key: str = ""
 
 
 class VideoGenerator(ABC):
     name: str = "base"
     title: str = "Base"
     description: str = ""
+    # True для генераторов, требующих локальную инфру (ComfyUI). Скрыты от не-админов.
+    local: bool = False
 
     async def is_available(self) -> bool:
         return True

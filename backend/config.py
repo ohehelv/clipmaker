@@ -15,9 +15,9 @@ class Settings(BaseSettings):
     openrouter_planner_model: str = ""
     openrouter_base_url: str = "https://openrouter.ai/api/v1"
 
-    # ComfyUI
+    # ComfyUI (опц., локальный «free mode» для админа)
     comfyui_url: str = "http://127.0.0.1:8188"
-    comfyui_autostart: bool = True
+    comfyui_autostart: bool = False
     comfyui_path: Path = Path("./vendor/ComfyUI")
     comfyui_port: int = 8188
 
@@ -41,11 +41,30 @@ class Settings(BaseSettings):
     api_key: str = ""
     cors_origins: str = "http://127.0.0.1:8000,http://localhost:8000"
 
-    # Видео по умолчанию (Wan 2.2 native — 832x480 @16fps быстро и стабильно)
-    default_generator: str = "wan5b"
+    # Auth / сессии (JWT в httponly cookie)
+    secret_key: str = "change-me-in-env-min-32-chars-please-please"
+    session_cookie_name: str = "clipmaker_session"
+    session_max_age_days: int = 30
+    secure_cookie: bool = False  # на проде ставить true
+
+    # Админы — список email через запятую. Получают доступ к локальным генераторам.
+    admin_emails: str = ""
+
+    # БД
+    database_url: str = "sqlite+aiosqlite:///./data/clipmaker.db"
+
+    # WaveSpeed.ai (облачная генерация)
+    wavespeed_base_url: str = "https://api.wavespeed.ai/api/v3"
+    # Админский fallback-ключ (опц.). Обычные юзеры вводят свой в настройках.
+    wavespeed_api_key: str = ""
+    wavespeed_poll_interval: float = 2.0
+    wavespeed_max_wait: int = 900
+
+    # Видео по умолчанию (облачный Wan 2.2 5B на WaveSpeed)
+    default_generator: str = "ws-wan22-ti2v-5b"
     default_width: int = 832
     default_height: int = 480
-    default_fps: int = 16
+    default_fps: int = 24
 
     # Длительность сцены, секунды
     scene_min: float = 6.0
@@ -71,6 +90,10 @@ class Settings(BaseSettings):
     @property
     def cors_origins_list(self) -> list[str]:
         return [x.strip() for x in self.cors_origins.split(",") if x.strip()]
+
+    @property
+    def admin_emails_list(self) -> list[str]:
+        return [x.strip().lower() for x in self.admin_emails.split(",") if x.strip()]
 
 
 settings = Settings()

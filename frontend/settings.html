@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Настройки — ClipMaker</title>
+<link rel="stylesheet" href="/static/style.css">
+<link rel="icon" href="data:,">
+</head>
+<body>
+<header>
+  <h1><a href="/" style="text-decoration:none;color:inherit">ClipMaker</a></h1>
+  <small>Настройки аккаунта</small>
+</header>
+
+<main>
+  <section class="card">
+    <h2>API ключи</h2>
+
+    <div id="page-error" class="error-msg hidden"></div>
+    <div id="page-success" class="success-msg hidden"></div>
+
+    <form id="settings-form">
+      <label class="field">
+        <span>WaveSpeed API ключ
+          <a href="https://wavespeed.ai" target="_blank" class="ghost-link" style="font-size:0.8em">wavespeed.ai →</a>
+        </span>
+        <div class="key-row">
+          <input type="password" name="wavespeed_key" id="ws-key-input"
+            placeholder="Оставьте пустым чтобы не менять"
+            autocomplete="off">
+          <button type="button" id="ws-verify-btn" class="ghost">Проверить</button>
+          <span id="ws-status" class="key-status"></span>
+        </div>
+        <small id="ws-current" class="key-hint"></small>
+      </label>
+
+      <label class="field">
+        <span>OpenRouter API ключ <em>(необязательно)</em>
+          <a href="https://openrouter.ai/keys" target="_blank" class="ghost-link" style="font-size:0.8em">openrouter.ai →</a>
+        </span>
+        <div class="key-row">
+          <input type="password" name="openrouter_key" id="orr-key-input"
+            placeholder="Оставьте пустым чтобы не менять"
+            autocomplete="off">
+        </div>
+        <small id="orr-current" class="key-hint"></small>
+      </label>
+
+      <label class="field">
+        <span>Генератор по умолчанию</span>
+        <select name="default_model" id="default-model"></select>
+      </label>
+
+      <div style="display:flex;gap:0.75rem;flex-wrap:wrap;margin-top:0.5rem">
+        <button type="submit" id="save-btn">Сохранить</button>
+        <button type="button" id="clear-ws-btn" class="ghost danger">Удалить WaveSpeed ключ</button>
+      </div>
+    </form>
+  </section>
+</main>
+
+<script type="module">
+import { requireAuth, renderHeader } from '/static/auth.js';
+
+const me = await requireAuth();
+if (!me) throw new Error('not auth');
+renderHeader(me);
+
+// Загружаем настройки и модели параллельно
+const [settingsRes, modelsRes] = await Promise.all([
+  fetch('/api/settings'),
+  fetch('/api/models'),
+]);
+
+const settings = settingsRes.ok ? await settingsRes.json() : {};
+const modelsData = modelsRes.ok ? await modelsRes.json() : { generators: [] };
+
+// Текущее состояние ключей
+const wsCurrent = document.getElementById('ws-current');
+const orrCurrent = document.getElementById('orr-current');
+
+wsCurrent.textContent = settings.wavespeed_key_masked
+  ? `Текущий: ${settings.wavespeed_key_masked}`
+  : 'Ключ не установлен';
+orrCurrent.textContent = settings.openrouter_key_masked
+  ? `Текущий: ${settings.openrouter_key_masked}`
+  : 'Ключ не установлен';
+
+// Список моделей
+const modelSel = document.getElementById('default-model');
+for (const gen of modelsData.generators || []) {
+  const opt = document.createElement('option');
+  opt.value = gen.id;
+  opt.textContent = gen.name || gen.id;
+  if (gen.id === settings.default_model) opt.selected = true;
+  modelSel.appendChild(opt);
+}
+
+// Проверить ключ
+document.getElementById('ws-verify-btn').addEventListener('click', async () => {
+  const key = document.getElementById('ws-key-input').value.trim();
+  const st = document.getElementById('ws-status');
+  if (!key) { st.textContent = 'Введите ключ'; st.className = 'key-status error'; return; }
+  st.textContent = 'Проверка...'; st.className = 'key-status';
+  const r = await fetch('/api/settings/verify_wavespeed', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ key }),
+  });
+  const d = await r.json().catch(() => ({}));
+  if (d.valid) {
+    st.textContent = '✓ Ключ действителен'; st.className = 'key-status ok';
+  } else {
+    st.textContent = '✗ Ключ недействителен'; st.className = 'key-status error';
+  }
+});
+
+// Сохранить
+document.getElementById('settings-form').addEventListener('submit', async e => {
+  e.preventDefault();
+  const btn = document.getElementById('save-btn');
+  btn.disabled = true;
+  const fd = new FormData(e.target);
+  const body = {};
+  const wsVal = fd.get('wavespeed_key').trim();
+  const orrVal = fd.get('openrouter_key').trim();
+  if (wsVal) body.wavespeed_key = wsVal;
+  if (orrVal) body.openrouter_key = orrVal;
+  body.default_model = fd.get('default_model');
+
+  const r = await fetch('/api/settings', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (r.ok) {
+    showSuccess('Настройки сохранены');
+    // Обновим маску
+    const fresh = await (await fetch('/api/settings')).json();
+    wsCurrent.textContent = fresh.wavespeed_key_masked
+      ? `Текущий: ${fresh.wavespeed_key_masked}`
+      : 'Ключ не установлен';
+    orrCurrent.textContent = fresh.openrouter_key_masked
+      ? `Текущий: ${fresh.openrouter_key_masked}`
+      : 'Ключ не установлен';
+    document.getElementById('ws-key-input').value = '';
+    document.getElementById('orr-key-input').value = '';
+  } else {
+    const d = await r.json().catch(() => ({}));
+    showError(d.detail || 'Ошибка сохранения');
+  }
+  btn.disabled = false;
+});
+
+// Удалить WS ключ
+document.getElementById('clear-ws-btn').addEventListener('click', async () => {
+  if (!confirm('Удалить WaveSpeed ключ?')) return;
+  const r = await fetch('/api/settings', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ wavespeed_key: '' }),
+  });
+  if (r.ok) {
+    wsCurrent.textContent = 'Ключ не установлен';
+    showSuccess('Ключ удалён');
+  }
+});
+
+function showError(msg) {
+  const el = document.getElementById('page-error');
+  el.textContent = msg; el.classList.remove('hidden');
+  document.getElementById('page-success').classList.add('hidden');
+}
+function showSuccess(msg) {
+  const el = document.getElementById('page-success');
+  el.textContent = msg; el.classList.remove('hidden');
+  document.getElementById('page-error').classList.add('hidden');
+}
+</script>
+</body>
+</html>

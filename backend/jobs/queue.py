@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import time
 import traceback
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, Optional
 
@@ -17,11 +18,21 @@ class CancelledError(Exception):
     pass
 
 
+@dataclass
+class UserContext:
+    """Контекст пользователя для job: id и расшифрованные ключи (живут в памяти)."""
+    user_id: int = 0
+    is_admin: bool = False
+    wavespeed_key: str = ""
+    openrouter_key: str = ""
+
+
 class JobQueue:
     def __init__(self) -> None:
-        self._queue: asyncio.Queue[tuple[str, Path, JobRequest]] = asyncio.Queue()
+        self._queue: asyncio.Queue[tuple[str, Path, JobRequest, UserContext]] = asyncio.Queue()
         self._jobs: Dict[str, JobInfo] = {}
         self._cancel_flags: Dict[str, bool] = {}
+        self._user_ids: Dict[str, int] = {}
         self._worker_task: Optional[asyncio.Task] = None
 
     # ----- persist -----
@@ -66,23 +77,42 @@ class JobQueue:
         if self._worker_task is None or self._worker_task.done():
             self._worker_task = asyncio.create_task(self._worker())
 
-    async def submit(self, job_id: str, audio_path: Path, req: JobRequest) -> JobInfo:
+    async def submit(
+        self,
+        job_id: str,
+        audio_path: Path,
+        req: JobRequest,
+        user_ctx: Optional[UserContext] = None,
+    ) -> JobInfo:
         now = time.time()
         info = JobInfo(
             id=job_id, status=JobStatus.queued, message="в очереди",
             created_at=now, updated_at=now,
         )
         self._jobs[job_id] = info
+        ctx = user_ctx or UserContext()
+        if ctx.user_id:
+            self._user_ids[job_id] = ctx.user_id
         self._persist(job_id)
-        await self._queue.put((job_id, audio_path, req))
+        await self._queue.put((job_id, audio_path, req, ctx))
         self._ensure_worker()
         return info
 
     def get(self, job_id: str) -> Optional[JobInfo]:
         return self._jobs.get(job_id)
 
-    def list(self) -> list[JobInfo]:
-        return list(self._jobs.values())
+    def list(self, user_id: Optional[int] = None) -> list[JobInfo]:
+        if user_id is None:
+            return list(self._jobs.values())
+        out: list[JobInfo] = []
+        for jid, info in self._jobs.items():
+            owner = self._user_ids.get(jid)
+            if owner is None or owner == user_id:
+                out.append(info)
+        return out
+
+    def owner_of(self, job_id: str) -> Optional[int]:
+        return self._user_ids.get(job_id)
 
     def cancel(self, job_id: str) -> bool:
         if job_id not in self._jobs:
@@ -126,12 +156,13 @@ class JobQueue:
 
     async def _worker(self) -> None:
         while True:
-            job_id, audio_path, req = await self._queue.get()
+            job_id, audio_path, req, user_ctx = await self._queue.get()
             try:
                 await runner.run_pipeline(
                     job_id, audio_path, req,
                     progress=lambda **kw: self._update(job_id, **kw),
                     cancel_check=lambda: self.is_cancelled(job_id),
+                    user_ctx=user_ctx,
                 )
             except CancelledError:
                 self._update(

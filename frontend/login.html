@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<title>Войти — ClipMaker</title>
+<link rel="stylesheet" href="/static/style.css">
+<link rel="icon" href="data:,">
+</head>
+<body class="auth-page">
+<div class="auth-card card">
+  <h1>ClipMaker</h1>
+  <p class="auth-sub">Войдите в свой аккаунт</p>
+
+  <div id="error-msg" class="error-msg hidden"></div>
+
+  <form id="login-form">
+    <label class="field">
+      <span>Email</span>
+      <input type="email" name="email" required autofocus autocomplete="email">
+    </label>
+    <label class="field">
+      <span>Пароль</span>
+      <input type="password" name="password" required autocomplete="current-password">
+    </label>
+    <button type="submit" id="submit-btn">Войти</button>
+  </form>
+
+  <p class="auth-footer">Нет аккаунта? <a href="/register">Зарегистрироваться</a></p>
+</div>
+
+<script type="module">
+import { getMe } from '/static/auth.js';
+
+(async () => {
+  const me = await getMe();
+  if (me) { window.location.href = '/'; return; }
+})();
+
+const form = document.getElementById('login-form');
+const errMsg = document.getElementById('error-msg');
+const btn = document.getElementById('submit-btn');
+
+form.addEventListener('submit', async e => {
+  e.preventDefault();
+  errMsg.classList.add('hidden');
+  btn.disabled = true;
+  btn.textContent = 'Вход...';
+
+  const fd = new FormData(form);
+  const body = new URLSearchParams({ email: fd.get('email'), password: fd.get('password') });
+
+  try {
+    const r = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body,
+    });
+    if (r.ok) {
+      window.location.href = '/';
+    } else {
+      const d = await r.json().catch(() => ({}));
+      showError(d.detail || 'Неверный email или пароль');
+    }
+  } catch {
+    showError('Ошибка сети. Попробуйте снова.');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Войти';
+  }
+});
+
+function showError(msg) {
+  errMsg.textContent = msg;
+  errMsg.classList.remove('hidden');
+}
+</script>
+</body>
+</html>

@@ -17,6 +17,7 @@ class ComfyWorkflowGenerator(VideoGenerator):
     - build_patches(req): возвращает dict для patch_workflow.
     """
 
+    local: ClassVar[bool] = True  # все ComfyUI-генераторы — локальные (admin-only)
     workflow_name: ClassVar[str] = ""
     output_node: ClassVar[str | None] = None
     negative_default: ClassVar[str] = "low quality, blurry, watermark, text, bad anatomy"
