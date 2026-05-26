@@ -10,6 +10,9 @@ class Settings(BaseSettings):
     # OpenRouter
     openrouter_api_key: str = ""
     openrouter_model: str = "anthropic/claude-sonnet-4.5"
+    # Быстрая модель для планирования сцен (если пусто — используется openrouter_model).
+    # Рекомендуется: anthropic/claude-haiku-4.5, google/gemini-2.5-flash, openai/gpt-4o-mini
+    openrouter_planner_model: str = ""
     openrouter_base_url: str = "https://openrouter.ai/api/v1"
 
     # ComfyUI

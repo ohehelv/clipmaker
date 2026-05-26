@@ -129,7 +129,8 @@ async def plan_llm(req: JobRequest, duration: float) -> List[Scene]:
         f"Lyrics:\n{req.lyrics or '(no lyrics provided)'}"
     )
     try:
-        raw = await llm_client.chat(get_prompts()["director_system"], user, temperature=0.7)
+        planner_model = settings.openrouter_planner_model or None
+        raw = await llm_client.chat(get_prompts()["director_system"], user, model=planner_model, temperature=0.7)
     except llm_client.LLMError:
         return await plan_uniform(req, duration)
     m = _JSON_RE.search(raw)
