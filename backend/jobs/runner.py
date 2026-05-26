@@ -65,6 +65,29 @@ async def run_pipeline(
     total = len(scenes)
     t_gen_start = time.time()
 
+    avg_scene: float = 0.0  # средняя длительность по уже готовым сценам
+
+    async def _heartbeat(scene_idx: int, t_scene_start: float) -> None:
+        """Каждые 5 сек обновляем сообщение и под-прогресс текущей сцены."""
+        try:
+            while True:
+                await asyncio.sleep(5.0)
+                el = time.time() - t_scene_start
+                mm, ss = divmod(int(el), 60)
+                # оценка под-прогресса по среднему предыдущих сцен (cap 0.95)
+                if avg_scene > 0:
+                    sub = min(0.95, el / avg_scene)
+                else:
+                    sub = 0.0
+                base = 0.18 + 0.72 * scene_idx / max(1, total)
+                step = 0.72 / max(1, total)
+                progress(
+                    progress=base + step * sub,
+                    message=f"сцена {scene_idx + 1}/{total} — {mm:02d}:{ss:02d}",
+                )
+        except asyncio.CancelledError:
+            return
+
     for i, sc in enumerate(scenes):
         _check_cancel(cancel_check)
         out = scenes_dir / f"scene_{i:04d}.mp4"
@@ -78,16 +101,25 @@ async def run_pipeline(
             work_dir=scenes_dir,
             cancel_check=cancel_check,
         )
+        t_scene_start = time.time()
+        hb_task = asyncio.create_task(_heartbeat(i, t_scene_start))
         # retry до 2 раз
         last_exc: Exception | None = None
-        for attempt in range(2):
+        try:
+            for attempt in range(2):
+                try:
+                    await gen.generate(greq)
+                    last_exc = None
+                    break
+                except Exception as e:
+                    last_exc = e
+                    await asyncio.sleep(1.0)
+        finally:
+            hb_task.cancel()
             try:
-                await gen.generate(greq)
-                last_exc = None
-                break
-            except Exception as e:
-                last_exc = e
-                await asyncio.sleep(1.0)
+                await hb_task
+            except asyncio.CancelledError:
+                pass
         if last_exc is not None:
             raise last_exc
         scene_videos.append(out)
@@ -95,11 +127,11 @@ async def run_pipeline(
         done = i + 1
         # ETA
         elapsed = time.time() - t_gen_start
-        avg = elapsed / done
-        remaining = avg * (total - done)
+        avg_scene = elapsed / done
+        remaining = avg_scene * (total - done)
         progress(
             progress=0.18 + 0.72 * done / max(1, total),
-            message=f"сцена {done}/{total}",
+            message=f"сцена {done}/{total} готова (среднее {avg_scene:.0f}с)",
             eta_seconds=remaining,
         )
 
