@@ -15,12 +15,12 @@ async function loadGenerators() {
     const r = await fetch('/api/models');
     const list = await r.json();
     genSel.innerHTML = list.map(g => {
-      const sel = g.name === 'wan' ? ' selected' : '';
+      const sel = g.name === 'wan5b' ? ' selected' : '';
       const avail = g.available ? '' : ' (нет)';
       return `<option value="${g.name}"${sel}>${g.title}${avail}</option>`;
     }).join('');
   } catch (e) {
-    genSel.innerHTML = '<option value="wan" selected>Wan 2.2 14B</option>';
+    genSel.innerHTML = '<option value="wan5b" selected>Wan 2.2 TI2V-5B</option>';
   }
 }
 

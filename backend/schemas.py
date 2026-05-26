@@ -39,7 +39,7 @@ class JobRequest(BaseModel):
     prompt: str = Field(..., description="Общий стиль/идея клипа")
     lyrics: str = Field("", description="Текст песни (по строкам)")
     scene_mode: SceneMode = SceneMode.whisper
-    generator: str = Field("wan", description="Имя видеогенератора")
+    generator: str = Field("wan5b", description="Имя видеогенератора")
     width: Optional[int] = None
     height: Optional[int] = None
     fps: Optional[int] = None
