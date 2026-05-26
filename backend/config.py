@@ -25,6 +25,9 @@ class Settings(BaseSettings):
     whisper_model: str = "large-v3"
     whisper_device: str = "cuda"
     whisper_compute_type: str = "float16"
+    # 0 = взять все ядра (os.cpu_count()). Имеет смысл при device=cpu.
+    whisper_cpu_threads: int = 0
+    whisper_num_workers: int = 1
 
     data_dir: Path = Path("./data")
 
@@ -36,7 +39,7 @@ class Settings(BaseSettings):
     cors_origins: str = "http://127.0.0.1:8000,http://localhost:8000"
 
     # Видео по умолчанию (Wan 2.2 native — 832x480 @16fps быстро и стабильно)
-    default_generator: str = "wan"
+    default_generator: str = "wan5b"
     default_width: int = 832
     default_height: int = 480
     default_fps: int = 16

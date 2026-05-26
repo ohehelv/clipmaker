@@ -53,10 +53,16 @@ def _is_cuda_runtime_error(exc: BaseException) -> bool:
 
 def _build_whisper(device: str, compute_type: str):
     from faster_whisper import WhisperModel  # отложенный импорт (тяжёлый)
+    import os
+    cpu_threads = settings.whisper_cpu_threads
+    if device == "cpu" and cpu_threads <= 0:
+        cpu_threads = os.cpu_count() or 4
     return WhisperModel(
         settings.whisper_model,
         device=device,
         compute_type=compute_type,
+        cpu_threads=cpu_threads,
+        num_workers=max(1, settings.whisper_num_workers),
     )
 
 
